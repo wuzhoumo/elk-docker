@@ -6,9 +6,14 @@
 
 # Run with:
 # docker run -p 5601:5601 -p 9200:9200 -p 5000:5000 -it --name elk <repo-user>/elk
+FROM ubuntu:latest
+# MAINTAINER Sebastien Pujadas http://pujadas.net 
+COPY sources.list /etc/apt/sources.list
+ENV TZ "Asia/Shanghai"
+ENV LANG zh_CN.UTF-8
+RUN localedef -f UTF-8 -i zh_CN zh_CN.UTF-8
+ENV DEBIAN_FRONTEND noninteractive
 
-FROM phusion/baseimage
-MAINTAINER Sebastien Pujadas http://pujadas.net
 ENV REFRESHED_AT 2015-11-20
 
 ###############################################################################
