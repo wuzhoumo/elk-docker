@@ -9,45 +9,27 @@
 
 FROM phusion/baseimage
 MAINTAINER Sebastien Pujadas http://pujadas.net
-ENV REFRESHED_AT 2015-11-05
+ENV REFRESHED_AT 2015-11-20
 
 ###############################################################################
 #                                INSTALLATION
 ###############################################################################
 
-### install Elasticsearch
+### install Elasticsearch && Logstash
 
 RUN apt-get update -qq \
  && apt-get install -qqy curl
 
-RUN curl http://packages.elasticsearch.org/GPG-KEY-elasticsearch | apt-key add -
+RUN wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+RUN wget -qO - https://packages.elasticsearch.org/GPG-KEY-elasticsearch | sudo apt-key add -
 RUN echo deb http://packages.elasticsearch.org/elasticsearch/2.x/debian stable main > /etc/apt/sources.list.d/elasticsearch-2.x.list
-
+RUN echo deb http://packages.elasticsearch.org/logstash/2.0/debian stable main > /etc/apt/sources.list.d/logstash.list
 RUN apt-get update -qq \
  && apt-get install -qqy \
 		elasticsearch \
+		logstash \
 		openjdk-7-jdk \
  && apt-get clean
-
-
-### install Logstash
-
-ENV LOGSTASH_HOME /opt/logstash
-ENV LOGSTASH_PACKAGE logstash-2.0.0.tar.gz
-
-RUN mkdir ${LOGSTASH_HOME} \
- && curl -O https://download.elasticsearch.org/logstash/logstash/${LOGSTASH_PACKAGE} \
- && tar xzf ${LOGSTASH_PACKAGE} -C ${LOGSTASH_HOME} --strip-components=1 \
- && rm -f ${LOGSTASH_PACKAGE} \
- && groupadd -r logstash \
- && useradd -r -s /usr/sbin/nologin -d ${LOGSTASH_HOME} -c "Logstash service user" -g logstash logstash \
- && mkdir -p /var/log/logstash /etc/logstash/conf.d \
- && chown -R logstash:logstash ${LOGSTASH_HOME} /var/log/logstash
-
-ADD ./logstash-init /etc/init.d/logstash
-RUN sed -i -e 's#^LS_HOME=$#LS_HOME='$LOGSTASH_HOME'#' /etc/init.d/logstash \
- && chmod +x /etc/init.d/logstash
-
 
 ### install Kibana
 
@@ -84,14 +66,17 @@ ADD ./logstash-forwarder.crt /etc/pki/tls/certs/logstash-forwarder.crt
 ADD ./logstash-forwarder.key /etc/pki/tls/private/logstash-forwarder.key
 
 # filters
-ADD ./01-lumberjack-input.conf /etc/logstash/conf.d/01-lumberjack-input.conf
+ADD ./01-filebeat-input.conf /etc/logstash/conf.d/01-filebeat-input.conf
 ADD ./10-syslog.conf /etc/logstash/conf.d/10-syslog.conf
 ADD ./11-nginx.conf /etc/logstash/conf.d/11-nginx.conf
-ADD ./30-lumberjack-output.conf /etc/logstash/conf.d/30-lumberjack-output.conf
+ADD ./30-output.conf /etc/logstash/conf.d/30-output.conf
 
 # patterns
-ADD ./nginx.pattern ${LOGSTASH_HOME}/patterns/nginx
-RUN chown -R logstash:logstash ${LOGSTASH_HOME}/patterns
+ADD ./nginx.pattern /opt/logstash/patterns/nginx
+RUN chown -R logstash:logstash /opt/logstash/patterns
+
+# filebeat
+RUN /opt/logstash/bin/plugin update logstash-input-beats
 
 
 ###############################################################################
