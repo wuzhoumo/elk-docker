@@ -76,7 +76,7 @@ ADD ./nginx.pattern /opt/logstash/patterns/nginx
 RUN chown -R logstash:logstash /opt/logstash/patterns
 
 # filebeat
-RUN /opt/logstash/bin/plugin update logstash-input-beats
+RUN yes Y | /opt/logstash/bin/plugin update logstash-input-beats
 
 
 ###############################################################################
